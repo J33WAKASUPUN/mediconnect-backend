@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Appointment Cancelled</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #dc2626;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .content {
+            padding: 20px;
+            background-color: #f8fafc;
+        }
+        .footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 12px;
+            color: #666;
+        }
+        .appointment-details {
+            background-color: #f1f5f9;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .cancellation-info {
+            background-color: #fee2e2;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Appointment Cancelled</h1>
+        </div>
+        <div class="content">
+            <p>Dear {{recipientName}},</p>
+            
+            <div class="appointment-details">
+                <h3>Cancelled Appointment Details:</h3>
+                <p><strong>Date:</strong> {{appointmentDate}}</p>
+                <p><strong>Time:</strong> {{appointmentTime}}</p>
+                <p><strong>Doctor:</strong> Dr. {{doctorName}}</p>
+                <p><strong>Patient:</strong> {{patientName}}</p>
+                <p><strong>Location:</strong> {{location}}</p>
+            </div>
+
+            <div class="cancellation-info">
+                <h3>Cancellation Information:</h3>
+                <p><strong>Cancelled by:</strong> {{cancelledByName}}</p>
+                {{#if cancellationReason}}
+                <p><strong>Reason:</strong> {{cancellationReason}}</p>
+                {{/if}}
+            </div>
+
+            <p>{{nextSteps}}</p>
+        </div>
+        <div class="footer">
+            <p>You can schedule a new appointment through our platform at any time.</p>
+            <p>© 2025 MediConnect</p>
+        </div>
+    </div>
+</body>
+</html>

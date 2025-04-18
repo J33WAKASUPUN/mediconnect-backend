@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .container { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #2196F3; color: white; padding: 15px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Schedule Update</h2>
+        </div>
+        <div class="content">
+            <p>Dear Dr. {{doctorName}},</p>
+            <p>Your schedule has been updated.</p>
+            <div class="details">
+                <p><strong>Date:</strong> {{date}}</p>
+                <p><strong>Changes:</strong> {{changes}}</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

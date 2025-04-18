@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .container { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #FF9800; color: white; padding: 15px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Appointment Status Update</h2>
+        </div>
+        <div class="content">
+            <p>Dear {{recipientName}},</p>
+            <p>Your appointment status has been updated to: {{status}}</p>
+            <div class="details">
+                <p><strong>Date:</strong> {{appointmentDate}}</p>
+                <p><strong>Time:</strong> {{appointmentTime}}</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
