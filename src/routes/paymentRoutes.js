@@ -20,17 +20,18 @@ router.post('/webhook', handleWebhook);
 // Protected routes
 router.use(protect);
 
-// Payment routes
+// Payment creation and capture routes
 router.post('/create-order', createPaymentOrder);
 router.post('/capture/:orderId', capturePayment);
-router.get('/:paymentId', getPaymentDetails);
 
-// Analytics routes
+// Fixed routes first (most specific routes)
 router.get('/history', getPaymentHistory);
 router.get('/analytics', getPaymentAnalytics);
 router.get('/refunds', getRefundHistory);
 router.get('/pending', getPendingPayments);
 
-router.get('/:paymentId/receipt', protect, paymentController.getReceipt);
+// Parameter routes last (dynamic routes)
+router.get('/:paymentId/receipt', paymentController.getReceipt);
+router.get('/:paymentId', getPaymentDetails);
 
 module.exports = router;

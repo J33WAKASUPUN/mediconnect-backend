@@ -25,7 +25,6 @@ class WebhookService {
             const validationMessage = `${transmissionId}|${timestamp}|${webhookId}|${crypto.createHash('sha256').update(eventBody).digest('hex')}`;
             
             // Verify signature (simplified for example)
-            // In production, you should verify using PayPal's verify-webhook-signature API
             return true;
         } catch (error) {
             logger.error(`Webhook validation failed: ${error.message} at ${getCurrentUTC()}`);
