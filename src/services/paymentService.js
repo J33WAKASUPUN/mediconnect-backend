@@ -6,6 +6,7 @@ const AppError = require('../utils/AppError');
 const logger = require('../utils/logger');
 const { getCurrentUTC } = require('../utils/dateTime');
 const { generatePaymentReceiptPDF } = require('../utils/generateReceiptPDF');
+const jwt = require('jsonwebtoken');
 
 class PaymentService {
     async createPaymentOrder(appointmentId, amount, metadata = {}) {
@@ -458,7 +459,7 @@ class PaymentService {
                         }
                     ]
                 });
-    
+
             if (!payment) {
                 logger.error(`Receipt generation failed: Payment ${paymentId} not found at ${getCurrentUTC()}`);
                 return {
@@ -466,12 +467,12 @@ class PaymentService {
                     error: 'Payment not found'
                 };
             }
-    
+
             // Generate the PDF receipt
             const pdfPath = await generatePaymentReceiptPDF(payment, currentUser);
-            
+
             logger.info(`Receipt generated successfully for payment: ${paymentId} at ${getCurrentUTC()}`);
-    
+
             // You could also send an email with the receipt attached
             // This is optional but recommended for a better user experience
             try {
@@ -482,13 +483,13 @@ class PaymentService {
                     'payment_success', // You might want a specific 'receipt_generated' template
                     payment.appointmentId.patientId
                 );
-                
+
                 logger.info(`Receipt notification email sent for payment: ${paymentId} at ${getCurrentUTC()}`);
             } catch (emailError) {
                 logger.error(`Failed to send receipt notification email: ${emailError.message} at ${getCurrentUTC()}`);
                 // Continue even if email fails
             }
-    
+
             return {
                 success: true,
                 data: {
@@ -501,7 +502,7 @@ class PaymentService {
                     }
                 }
             };
-    
+
         } catch (error) {
             logger.error(`Receipt generation error: ${error.message} at ${getCurrentUTC()}`);
             return {
@@ -511,6 +512,41 @@ class PaymentService {
             };
         }
     }
+    async generateReceiptToken(paymentId) {
+        try {
+            // First verify that the payment exists
+            const payment = await Payment.findById(paymentId);
+            if (!payment) {
+                return {
+                    success: false,
+                    error: 'Payment not found'
+                };
+            }
+
+            // Generate a short-lived token specifically for this receipt
+            const receiptToken = jwt.sign(
+                { purpose: 'receipt_access', paymentId: paymentId },
+                process.env.JWT_SECRET,
+                { expiresIn: '10m' } // Token expires in 10 minutes
+            );
+
+            return {
+                success: true,
+                data: {
+                    receiptToken,
+                    expiresIn: '10 minutes'
+                }
+            };
+
+        } catch (error) {
+            logger.error(`Failed to generate receipt token: ${error.message}`);
+            return {
+                success: false,
+                error: 'Failed to generate receipt token'
+            };
+        }
+    }
+
 }
 
 

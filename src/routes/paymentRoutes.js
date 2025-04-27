@@ -32,6 +32,12 @@ router.get('/pending', getPendingPayments);
 
 // Parameter routes last (dynamic routes)
 router.get('/:paymentId/receipt', paymentController.getReceipt);
+router.post('/:paymentId/receipt', paymentController.getReceiptWithToken);
+router.get('/:paymentId/receipt-view', paymentController.getReceiptWithQueryToken);
+router.get('/:paymentId/receipt-with-token', paymentController.getReceiptWithToken);
+router.get('/:paymentId/receipt-token', paymentController.getReceiptToken);
+
+router.get('/:paymentId/view-receipt', paymentController.viewReceiptWithSpecialToken);
 router.get('/:paymentId', getPaymentDetails);
 
 module.exports = router;
