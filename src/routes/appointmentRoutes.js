@@ -6,7 +6,6 @@ const {
     updateAppointmentStatus,
     requestReschedule,
     addRating,
-    // Add new endpoints
     getAppointmentHistory,
     getDoctorSchedule,
     getAppointmentStats

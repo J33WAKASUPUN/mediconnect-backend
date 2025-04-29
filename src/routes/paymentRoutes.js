@@ -36,8 +36,9 @@ router.post('/:paymentId/receipt', paymentController.getReceiptWithToken);
 router.get('/:paymentId/receipt-view', paymentController.getReceiptWithQueryToken);
 router.get('/:paymentId/receipt-with-token', paymentController.getReceiptWithToken);
 router.get('/:paymentId/receipt-token', paymentController.getReceiptToken);
-
+router.get('/:paymentId/receipt-details', paymentController.getReceiptDetails);
 router.get('/:paymentId/view-receipt', paymentController.viewReceiptWithSpecialToken);
 router.get('/:paymentId', getPaymentDetails);
+router.post('/:paymentId/refund', protect, paymentController.processRefund);
 
 module.exports = router;

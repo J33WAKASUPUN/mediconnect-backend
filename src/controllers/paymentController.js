@@ -452,3 +452,112 @@ exports.viewReceiptWithSpecialToken = catchAsync(async (req, res) => {
         });
     }
 });
+
+exports.getReceiptDetails = catchAsync(async (req, res) => {
+    const { paymentId } = req.params;
+
+    // This route is protected by the auth middleware, so we know the user is authenticated
+    const userId = req.user.id;
+    const role = req.user.role;
+
+    try {
+        // Get payment details with populated data
+        const payment = await Payment.findById(paymentId)
+            .populate({
+                path: 'appointmentId',
+                populate: [
+                    { path: 'patientId', select: 'firstName lastName email' },
+                    { path: 'doctorId', select: 'firstName lastName email specialization' }
+                ]
+            });
+
+        if (!payment) {
+            return res.status(404).json({
+                success: false,
+                message: 'Payment not found'
+            });
+        }
+
+        // Check if user has permission to access this payment
+        let hasPermission = false;
+
+        if (role === 'admin') {
+            hasPermission = true;
+        } else if (role === 'doctor' &&
+            payment.appointmentId &&
+            payment.appointmentId.doctorId &&
+            payment.appointmentId.doctorId._id.toString() === userId) {
+            hasPermission = true;
+        } else if (role === 'patient' &&
+            payment.appointmentId &&
+            payment.appointmentId.patientId &&
+            payment.appointmentId.patientId._id.toString() === userId) {
+            hasPermission = true;
+        }
+
+        if (!hasPermission) {
+            return res.status(403).json({
+                success: false,
+                message: 'You do not have permission to access this payment'
+            });
+        }
+
+        // Format the response with all receipt details
+        const receiptData = {
+            receiptNumber: `RCP-${payment._id.toString().substring(0, 8)}`,
+            date: payment.createdAt,
+            payment: {
+                _id: payment._id,
+                amount: payment.amount,
+                currency: payment.currency,
+                status: payment.status,
+                createdAt: payment.createdAt,
+                transactionDetails: payment.transactionDetails || {}
+            },
+            appointment: payment.appointmentId ? {
+                _id: payment.appointmentId._id,
+                dateTime: payment.appointmentId.dateTime,
+                duration: payment.appointmentId.duration,
+                status: payment.appointmentId.status,
+                reasonForVisit: payment.appointmentId.reasonForVisit
+            } : null,
+            patient: payment.appointmentId?.patientId ? {
+                _id: payment.appointmentId.patientId._id,
+                firstName: payment.appointmentId.patientId.firstName,
+                lastName: payment.appointmentId.patientId.lastName,
+                email: payment.appointmentId.patientId.email
+            } : null,
+            doctor: payment.appointmentId?.doctorId ? {
+                _id: payment.appointmentId.doctorId._id,
+                firstName: payment.appointmentId.doctorId.firstName,
+                lastName: payment.appointmentId.doctorId.lastName,
+                email: payment.appointmentId.doctorId.email,
+                specialization: payment.appointmentId.doctorId.specialization
+            } : null,
+        };
+
+        return res.status(200).json({
+            success: true,
+            data: receiptData
+        });
+    } catch (error) {
+        console.error(`Failed to get receipt details: ${error.message}`);
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to get receipt details'
+        });
+    }
+});
+
+exports.processRefund = catchAsync(async (req, res) => {
+    const { paymentId } = req.params;
+    const { reason } = req.body;
+
+    const result = await RefundService.processRefund(paymentId, reason);
+
+    res.status(200).json({
+        status: 'success',
+        timestamp: getCurrentUTC(),
+        data: result
+    });
+});

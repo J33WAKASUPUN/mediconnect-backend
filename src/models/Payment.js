@@ -12,7 +12,7 @@ const paymentSchema = new mongoose.Schema({
     },
     currency: {
         type: String,
-        default: 'RS.'
+        default: 'USD'
     },
     status: {
         type: String,
