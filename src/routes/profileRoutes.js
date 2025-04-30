@@ -4,7 +4,8 @@ const {
     getProfile,
     updateProfile,
     updatePatientProfile,
-    updateDoctorProfile
+    updateDoctorProfile,
+    getUserById
 } = require('../controllers/profileController');
 const { protect } = require('../middleware/auth');
 const { uploadProfilePicture } = require('../middleware/upload');
@@ -17,5 +18,7 @@ router.get('/', getProfile);
 router.put('/', uploadProfilePicture, updateProfile);
 router.put('/patient', updatePatientProfile);
 router.put('/doctor', updateDoctorProfile);
+router.get('/users/:id', getUserById);  
+
 
 module.exports = router;

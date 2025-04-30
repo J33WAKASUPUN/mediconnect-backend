@@ -26,3 +26,4 @@ exports.getUsersByRole = async (req, res, next) => {
         next(error);
     }
 };
+
