@@ -4,7 +4,8 @@ const {
     createReview,
     getDoctorReviews,
     addDoctorResponse,
-    getDoctorReviewAnalytics
+    getDoctorReviewAnalytics,
+    getPatientReviews  // Add this import!
 } = require('../controllers/reviewController');
 const { protect } = require('../middleware/auth');
 
@@ -16,5 +17,6 @@ router.use(protect);
 router.post('/:appointmentId', createReview);
 router.put('/:reviewId/response', addDoctorResponse);
 router.get('/doctor/:doctorId/analytics', getDoctorReviewAnalytics);
+router.get('/patient/:patientId', getPatientReviews);
 
 module.exports = router;

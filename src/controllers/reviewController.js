@@ -306,3 +306,52 @@ exports.getDoctorReviewAnalytics = async (req, res, next) => {
         next(error);
     }
 };
+
+// @desc    Get patient's reviews
+// @route   GET /api/reviews/patient/:patientId
+// @access  Private
+exports.getPatientReviews = async (req, res, next) => {
+    try {
+        const page = parseInt(req.query.page, 10) || 1;
+        const limit = parseInt(req.query.limit, 10) || 10;
+        const startIndex = (page - 1) * limit;
+
+        // Convert string ID to ObjectId
+        const patientObjectId = new mongoose.Types.ObjectId(req.params.patientId);
+
+        const reviews = await Review.find({ patientId: patientObjectId })
+            .populate({
+                path: 'doctorId',
+                select: 'firstName lastName profilePicture'
+            })
+            .populate('appointmentId', 'dateTime')
+            .sort({ createdAt: -1 })
+            .skip(startIndex)
+            .limit(limit);
+
+        const total = await Review.countDocuments({ patientId: patientObjectId });
+
+        res.status(200).json({
+            success: true,
+            timestamp: getCurrentUTC(),
+            data: {
+                reviews,
+                pagination: {
+                    current: page,
+                    total: Math.ceil(total / limit),
+                    totalReviews: total
+                }
+            }
+        });
+
+    } catch (error) {
+        if (error.name === 'CastError') {
+            return res.status(400).json({
+                success: false,
+                timestamp: getCurrentUTC(),
+                message: 'Invalid patient ID format'
+            });
+        }
+        next(error);
+    }
+};
