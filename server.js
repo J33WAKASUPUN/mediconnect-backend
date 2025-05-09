@@ -40,6 +40,7 @@ app.use('/api/notifications', require('./src/routes/notificationRoutes'));
 app.use('/api/reviews', require('./src/routes/reviewRoutes'));
 app.use('/api/medical-records', require('./src/routes/medicalRecordRoutes'));
 app.use('/api/calendar', require('./src/routes/calendarRoutes'));
+app.use('/api/todos', require('./src/routes/todoRoutes'));
 app.use('/api/payments', paymentRoutes);
 
 // Error handler
