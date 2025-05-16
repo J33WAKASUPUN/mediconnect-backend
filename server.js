@@ -10,10 +10,17 @@ const { getCurrentUTC } = require('./src/utils/dateTime');
 const CronService = require('./src/services/cronService');
 const testRoutes = require('./src/routes/testRoutes');
 const paymentRoutes = require('./src/routes/paymentRoutes')
+const http = require('http');
+const socketService = require('./src/services/socketService');
 
 // Initialize express
 const app = express();
 CronService.initializeJobs();
+const server = http.createServer(app);
+
+// Initialize socket service after creating http server
+socketService.initializeSocketServer(server);
+exports.io = socketService.getIo();
 
 // Connect to database
 connectDB();
@@ -42,12 +49,13 @@ app.use('/api/medical-records', require('./src/routes/medicalRecordRoutes'));
 app.use('/api/calendar', require('./src/routes/calendarRoutes'));
 app.use('/api/todos', require('./src/routes/todoRoutes'));
 app.use('/api/payments', paymentRoutes);
+app.use('/api/messages', require('./src/routes/messageRoutes'));
 
 // Error handler
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
-const server = app.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '0.0.0.0', () => {
     logger.info(`Server running on ${process.env.BASE_URL} in ${process.env.NODE_ENV} mode\n timestamp: ${getCurrentUTC()}`);
 });
 

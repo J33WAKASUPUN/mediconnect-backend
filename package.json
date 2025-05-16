@@ -24,6 +24,8 @@
     "node-cron": "^3.0.3",
     "nodemailer": "^6.10.0",
     "pdfkit": "^0.16.0",
+    "socket.io": "^4.8.1",
+    "uuid": "^11.1.0",
     "winston": "^3.17.0"
   },
   "devDependencies": {
