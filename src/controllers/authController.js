@@ -56,21 +56,26 @@ exports.login = async (req, res, next) => {
         if (!user || !(await user.matchPassword(password)) || user.role !== role) {
             return res.status(401).json({
                 success: false,
-                timestamp: getCurrentUTC(), // 2025-03-07 16:22:29
+                timestamp: getCurrentUTC(),
                 message: 'Invalid credentials'
             });
         }
 
         const token = user.getSignedJwtToken();
 
+        // Return a more complete user object to the client
         res.status(200).json({
             success: true,
-            timestamp: getCurrentUTC(), // 2025-03-07 16:22:29
+            timestamp: getCurrentUTC(),
             token,
             user: {
                 _id: user._id,
+                id: user._id, // Some parts of your app might expect this format
                 username: user.username,
+                email: user.email,
                 role: user.role,
+                firstName: user.firstName,
+                lastName: user.lastName,
                 profilePicture: user.profilePicture
             }
         });

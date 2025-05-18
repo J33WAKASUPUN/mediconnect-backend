@@ -39,6 +39,48 @@ const messageSchema = new mongoose.Schema({
         contentType: String,
         fileSize: Number
     },
+    // New fields for editing messages
+    editHistory: [{
+        content: String,
+        editedAt: {
+            type: Date,
+            default: getCurrentUTC
+        }
+    }],
+    isEdited: {
+        type: Boolean,
+        default: false
+    },
+    // New field for reactions
+    reactions: {
+        type: Map,
+        of: [{
+            userId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'User'
+            },
+            addedAt: {
+                type: Date,
+                default: getCurrentUTC
+            }
+        }],
+        default: () => new Map()
+    },
+    // New field for forwarded messages
+    forwardedFrom: {
+        messageId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Message'
+        },
+        userId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        },
+        conversationId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Conversation'
+        }
+    },
     metadata: {
         status: {
             type: String,
@@ -84,5 +126,7 @@ const messageSchema = new mongoose.Schema({
 // Index for efficient queries
 messageSchema.index({ conversationId: 1, createdAt: -1 });
 messageSchema.index({ senderId: 1, receiverId: 1 });
+// New text index for search functionality
+messageSchema.index({ content: 'text' });
 
 module.exports = mongoose.model('Message', messageSchema);
