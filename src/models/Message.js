@@ -24,15 +24,15 @@ const messageSchema = new mongoose.Schema({
     },
     content: {
         type: String,
-        required: function() { 
-            return this.messageType === 'text' || this.messageType === 'system'; 
+        required: function () {
+            return this.messageType === 'text' || this.messageType === 'system';
         }
     },
     file: {
         url: {
             type: String,
-            required: function() { 
-                return this.messageType === 'image' || this.messageType === 'document'; 
+            required: function () {
+                return this.messageType === 'image' || this.messageType === 'document';
             }
         },
         filename: String,
@@ -81,6 +81,9 @@ const messageSchema = new mongoose.Schema({
             ref: 'Conversation'
         }
     },
+    // Add this to your messageSchema in models/Message.js
+    // Inside the metadata object:
+
     metadata: {
         status: {
             type: String,
@@ -111,6 +114,25 @@ const messageSchema = new mongoose.Schema({
         isUrgent: {
             type: Boolean,
             default: false
+        },
+        // Add this new property for reply functionality
+        replyTo: {
+            messageId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Message',
+                default: null
+            },
+            senderId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'User',
+                default: null
+            },
+            content: String,
+            messageType: {
+                type: String,
+                enum: ['text', 'image', 'document', 'system'],
+                default: 'text'
+            }
         }
     },
     deletedFor: [{
