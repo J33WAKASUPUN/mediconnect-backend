@@ -1048,3 +1048,311 @@ exports.deleteMessage = async (req, res, next) => {
     next(error);
   }
 };
+
+// @desc    Send a file message using base64 encoding (for web compatibility)
+// @route   POST /api/messages/file/base64
+// @access  Private
+exports.sendFileMessageBase64 = async (req, res, next) => {
+  try {
+    const { receiverId, category, priority, relatedTo, referenceId, base64File, fileName, fileType } = req.body;
+    const senderId = req.user.id;
+
+    // Validate required fields
+    if (!base64File || !fileName || !fileType) {
+      return res.status(400).json({
+        success: false,
+        timestamp: getCurrentUTC(),
+        message: 'Missing required file information: base64File, fileName, and fileType are required'
+      });
+    }
+
+    // Trim IDs to remove any whitespace
+    const trimmedReceiverId = receiverId.toString().trim();
+    const trimmedSenderId = senderId.toString().trim();
+
+    // Create upload directory if it doesn't exist
+    const uploadDir = path.join(__dirname, '../../uploads/messages');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+
+    // Process base64 data
+    const base64Data = base64File.split(';base64,').pop();
+    const fileExt = path.extname(fileName) || '.' + fileType.split('/')[1];
+    const uniqueFilename = uuidv4() + fileExt;
+    const filePath = path.join(uploadDir, uniqueFilename);
+
+    // Write file to disk
+    fs.writeFileSync(filePath, base64Data, { encoding: 'base64' });
+
+    // Determine message type from file type
+    const isImage = fileType.startsWith('image/');
+    const messageType = isImage ? 'image' : 'document';
+
+    // Find or create conversation (same as in sendFileMessage)
+    let conversation = await Conversation.findOne({
+      participants: { $all: [trimmedSenderId, trimmedReceiverId] }
+    });
+
+    if (!conversation) {
+      // Get user details for proper metadata
+      const [sender, receiver] = await Promise.all([
+        User.findById(trimmedSenderId),
+        User.findById(trimmedReceiverId)
+      ]);
+
+      if (!sender || !receiver) {
+        return res.status(404).json({
+          success: false,
+          timestamp: getCurrentUTC(),
+          message: 'User not found'
+        });
+      }
+
+      const doctorId = sender.role === 'doctor' ? sender._id :
+        (receiver.role === 'doctor' ? receiver._id : null);
+      const patientId = sender.role === 'patient' ? sender._id :
+        (receiver.role === 'patient' ? receiver._id : null);
+
+      conversation = await Conversation.create({
+        participants: [trimmedSenderId, trimmedReceiverId],
+        metadata: {
+          doctorId,
+          patientId,
+          unreadCount: new Map([[trimmedReceiverId, 1]])
+        }
+      });
+    } else {
+      // Update unread count for receiver
+      const unreadCount = conversation.metadata.unreadCount || new Map();
+      const currentCount = unreadCount.get(trimmedReceiverId) || 0;
+      unreadCount.set(trimmedReceiverId, currentCount + 1);
+      conversation.metadata.unreadCount = unreadCount;
+    }
+
+    // Create file URL
+    const fileUrl = `${process.env.BASE_URL}/uploads/messages/${uniqueFilename}`;
+
+    // Get file size
+    const stats = fs.statSync(filePath);
+    const fileSizeInBytes = stats.size;
+
+    // Create a new message
+    const newMessage = new Message({
+      conversationId: conversation._id,
+      senderId: trimmedSenderId,
+      receiverId: trimmedReceiverId,
+      messageType,
+      file: {
+        url: fileUrl,
+        filename: uniqueFilename,
+        contentType: fileType,
+        fileSize: fileSizeInBytes
+      },
+      metadata: {
+        category: category || 'general',
+        priority: priority || 'normal',
+        relatedTo: relatedTo || 'none',
+        referenceId: referenceId || null,
+        isUrgent: priority === 'urgent'
+      },
+      createdAt: getCurrentUTC()
+    });
+
+    // Update conversation
+    conversation.lastMessage = newMessage._id;
+    conversation.updatedAt = getCurrentUTC();
+
+    await Promise.all([newMessage.save(), conversation.save()]);
+
+    // Safely emit socket event
+    try {
+      const socketService = require('../services/socketService');
+      if (socketService.io) {
+        socketService.io.to(trimmedReceiverId).emit('newMessage', {
+          message: newMessage,
+          conversation: conversation._id
+        });
+      }
+    } catch (socketError) {
+      logger.error(`Socket emission error: ${socketError.message}`);
+    }
+
+    res.status(201).json({
+      success: true,
+      timestamp: getCurrentUTC(),
+      data: newMessage
+    });
+  } catch (error) {
+    logger.error(`Error in sendFileMessageBase64: ${error.message}`);
+    next(error);
+  }
+};
+
+// @desc    Send a file message using base64 data (for web compatibility)
+// @route   POST /api/messages/file/base64
+// @access  Private
+exports.sendFileMessageBase64 = async (req, res, next) => {
+  try {
+    const { receiverId, category, priority, relatedTo, referenceId } = req.body;
+    const senderId = req.user.id;
+
+    // Trim IDs to remove any whitespace
+    const trimmedReceiverId = receiverId.toString().trim();
+    const trimmedSenderId = senderId.toString().trim();
+
+    // Check if file was uploaded
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        timestamp: getCurrentUTC(),
+        message: 'No file uploaded'
+      });
+    }
+
+    // Create file name and path
+    const fileExt = path.extname(req.file.originalname);
+    const uniqueFilename = `${uuidv4()}${fileExt}`;
+    const uploadDir = path.join(__dirname, '../../uploads/messages');
+
+    // Ensure directory exists
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+
+    // Write buffer to file
+    const filePath = path.join(uploadDir, uniqueFilename);
+    fs.writeFileSync(filePath, req.file.buffer);
+
+    // Determine message type from mimetype
+    const isImage = req.file.mimetype.startsWith('image/');
+    const messageType = isImage ? 'image' : 'document';
+
+    // Find or create conversation (same as in sendFileMessage)
+    let conversation = await Conversation.findOne({
+      participants: { $all: [trimmedSenderId, trimmedReceiverId] }
+    });
+
+    if (!conversation) {
+      // Get user details for proper metadata
+      const [sender, receiver] = await Promise.all([
+        User.findById(trimmedSenderId),
+        User.findById(trimmedReceiverId)
+      ]);
+
+      if (!sender || !receiver) {
+        return res.status(404).json({
+          success: false,
+          timestamp: getCurrentUTC(),
+          message: 'User not found'
+        });
+      }
+
+      const doctorId = sender.role === 'doctor' ? sender._id :
+        (receiver.role === 'doctor' ? receiver._id : null);
+      const patientId = sender.role === 'patient' ? sender._id :
+        (receiver.role === 'patient' ? receiver._id : null);
+
+      conversation = await Conversation.create({
+        participants: [trimmedSenderId, trimmedReceiverId],
+        metadata: {
+          doctorId,
+          patientId,
+          unreadCount: new Map([[trimmedReceiverId, 1]])
+        }
+      });
+    } else {
+      // Update unread count for receiver
+      const unreadCount = conversation.metadata.unreadCount || new Map();
+      const currentCount = unreadCount.get(trimmedReceiverId) || 0;
+      unreadCount.set(trimmedReceiverId, currentCount + 1);
+      conversation.metadata.unreadCount = unreadCount;
+    }
+
+    // Create file URL
+    const fileUrl = `${process.env.BASE_URL}/uploads/messages/${uniqueFilename}`;
+
+    // Create a new message
+    const newMessage = new Message({
+      conversationId: conversation._id,
+      senderId: trimmedSenderId,
+      receiverId: trimmedReceiverId,
+      messageType,
+      file: {
+        url: fileUrl,
+        filename: uniqueFilename,
+        contentType: req.file.mimetype,
+        fileSize: req.file.size
+      },
+      metadata: {
+        category: category || 'general',
+        priority: priority || 'normal',
+        relatedTo: relatedTo || 'none',
+        referenceId: referenceId || null,
+        isUrgent: priority === 'urgent'
+      },
+      createdAt: getCurrentUTC()
+    });
+
+    // Update conversation
+    conversation.lastMessage = newMessage._id;
+    conversation.updatedAt = getCurrentUTC();
+
+    await Promise.all([newMessage.save(), conversation.save()]);
+
+    // Safely emit socket event
+    try {
+      const socketService = require('../services/socketService');
+      if (socketService.io) {
+        socketService.io.to(trimmedReceiverId).emit('newMessage', {
+          message: newMessage,
+          conversation: conversation._id
+        });
+      }
+    } catch (socketError) {
+      logger.error(`Socket emission error: ${socketError.message}`);
+    }
+
+    res.status(201).json({
+      success: true,
+      timestamp: getCurrentUTC(),
+      data: newMessage
+    });
+  } catch (error) {
+    logger.error(`Error in sendFileMessageBase64: ${error.message}`);
+    next(error);
+  }
+};
+
+// Helper function to get detailed file metadata
+function getFileMetadata(file) {
+  // Extract file extension
+  const fileExt = path.extname(file.filename).toLowerCase();
+  
+  // Determine file category
+  let fileCategory = 'document';
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(fileExt.replace('.', ''))) {
+    fileCategory = 'image';
+  } else if (['mp4', 'mov', 'avi', 'webm'].includes(fileExt.replace('.', ''))) {
+    fileCategory = 'video';
+  } else if (['mp3', 'wav', 'ogg'].includes(fileExt.replace('.', ''))) {
+    fileCategory = 'audio';
+  } else if (['pdf'].includes(fileExt.replace('.', ''))) {
+    fileCategory = 'pdf';
+  } else if (['doc', 'docx'].includes(fileExt.replace('.', ''))) {
+    fileCategory = 'word';
+  } else if (['xls', 'xlsx'].includes(fileExt.replace('.', ''))) {
+    fileCategory = 'excel';
+  } else if (['ppt', 'pptx'].includes(fileExt.replace('.', ''))) {
+    fileCategory = 'powerpoint';
+  }
+  
+  return {
+    fileCategory,
+    fileExt,
+  };
+}
+
+// Then use this in your sendFileMessage and sendFileMessageBase64 controllers
+const { fileCategory } = getFileMetadata(req.file);
+const messageType = fileCategory === 'image' ? 'image' : 'document';

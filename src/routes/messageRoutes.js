@@ -3,6 +3,7 @@ const router = express.Router();
 const {
     sendMessage,
     sendFileMessage,
+    sendFileMessageBase64, 
     getMessages,
     getConversations,
     markMessageAsRead,
@@ -16,7 +17,7 @@ const {
     searchMessages
 } = require('../controllers/messageController');
 const { protect } = require('../middleware/auth');
-const { uploadMessageFile } = require('../middleware/uploadMessage');
+const { uploadMessageFile, uploadMessageFileMemory } = require('../middleware/uploadMessage');
 
 // Apply protection middleware to all routes
 router.use(protect);
@@ -24,6 +25,7 @@ router.use(protect);
 // Message routes
 router.post('/', sendMessage);
 router.post('/file', uploadMessageFile, sendFileMessage);
+router.post('/file/base64', uploadMessageFileMemory, sendFileMessageBase64); 
 router.get('/conversations', getConversations);
 router.get('/unread/count', getUnreadCount);
 router.get('/search', searchMessages);
