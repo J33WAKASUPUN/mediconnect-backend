@@ -12,6 +12,8 @@ const testRoutes = require('./src/routes/testRoutes');
 const paymentRoutes = require('./src/routes/paymentRoutes')
 const http = require('http');
 const socketService = require('./src/services/socketService');
+const userRoutes = require('./src/routes/userRoutes');
+const healthInsightsRoutes = require('./src/routes/healthInsightsRoutes');
 
 // Initialize express
 const app = express();
@@ -109,6 +111,8 @@ app.use('/api/calendar', require('./src/routes/calendarRoutes'));
 app.use('/api/todos', require('./src/routes/todoRoutes'));
 app.use('/api/payments', paymentRoutes);
 app.use('/api/messages', require('./src/routes/messageRoutes'));
+app.use('/api/users', userRoutes);
+app.use('/api/health-insights', healthInsightsRoutes);
 
 // Error handler
 app.use(errorHandler);

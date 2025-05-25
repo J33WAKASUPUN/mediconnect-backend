@@ -5,6 +5,8 @@ const Appointment = require('../models/Appointment');
 const { getCurrentUTC } = require('../utils/dateTime');
 const logger = require('../utils/logger');
 const fs = require('fs');
+const path = require('path');
+const { v4: uuidv4 } = require('uuid');
 
 // @desc    Send a text message
 // @route   POST /api/messages
@@ -33,27 +35,27 @@ exports.sendMessage = async (req, res, next) => {
     }
 
     // Check doctor-patient relationship if both are different roles
-    if ((sender.role === 'doctor' && receiver.role === 'patient') ||
-      (sender.role === 'patient' && receiver.role === 'doctor')) {
+    // if ((sender.role === 'doctor' && receiver.role === 'patient') ||
+    //   (sender.role === 'patient' && receiver.role === 'doctor')) {
 
-      const doctorId = sender.role === 'doctor' ? sender._id : receiver._id;
-      const patientId = sender.role === 'patient' ? sender._id : receiver._id;
+    //   const doctorId = sender.role === 'doctor' ? sender._id : receiver._id;
+    //   const patientId = sender.role === 'patient' ? sender._id : receiver._id;
 
-      // Check if there's at least one appointment between them
-      const hasRelationship = await Appointment.findOne({
-        doctorId,
-        patientId,
-        status: { $in: ['pending', 'confirmed', 'completed'] }
-      });
+    //   // Check if there's at least one appointment between them
+    //   const hasRelationship = await Appointment.findOne({
+    //     doctorId,
+    //     patientId,
+    //     status: { $in: ['pending', 'confirmed', 'completed'] }
+    //   });
 
-      if (!hasRelationship) {
-        return res.status(403).json({
-          success: false,
-          timestamp: getCurrentUTC(),
-          message: 'No doctor-patient relationship exists between these users'
-        });
-      }
-    }
+    //   if (!hasRelationship) {
+    //     return res.status(403).json({
+    //       success: false,
+    //       timestamp: getCurrentUTC(),
+    //       message: 'No doctor-patient relationship exists between these users'
+    //     });
+    //   }
+    // }
 
     // Find existing conversation or create a new one
     let conversation = await Conversation.findOne({
@@ -215,6 +217,7 @@ exports.sendFileMessage = async (req, res, next) => {
     // Create a new message
     const newMessage = new Message({
       conversationId: conversation._id,
+      
       senderId: trimmedSenderId,
       receiverId: trimmedReceiverId,
       messageType,
@@ -1352,7 +1355,3 @@ function getFileMetadata(file) {
     fileExt,
   };
 }
-
-// Then use this in your sendFileMessage and sendFileMessageBase64 controllers
-const { fileCategory } = getFileMetadata(req.file);
-const messageType = fileCategory === 'image' ? 'image' : 'document';
